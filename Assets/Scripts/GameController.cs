@@ -12,15 +12,36 @@ public class GameController : MonoBehaviour
     public float spawnWait;
     public float startWait;
     public float waveWait;
+    public AudioClip musicGeneric;
+    public AudioClip musicWin;
+    public AudioClip musicLose;
+    AudioSource audio;
+    GameObject background;
+    BGScroller backgroundScript;
+    GameObject starfieldNear;
+    particleSpeed particleNearSpeed;
+    GameObject particleFar;
+    particleSpeed particleFarSpeed;
+    GameObject[] enemy;
+    Mover enemySpeed;
 
     public Text scoreText;
     public Text restartText;
     public Text gameOverText;
     public Text creditText;
+    public Text superBoostText;
+    public bool superBoost;
+    public bool isSuperBoost;
+
+    private float timeLeft = 8;
 
     private bool gameOver;
     private bool restart;
     private int score;
+    private int i;
+
+    private GameObject[] enemyBolt;
+    private GameObject[] enemies;
 
     void Start()
     {
@@ -30,6 +51,20 @@ public class GameController : MonoBehaviour
         restartText.text = "";
         gameOverText.text = "";
         creditText.text = "";
+        superBoostText.text = "";
+
+        background = GameObject.FindGameObjectWithTag("Background");
+        backgroundScript = background.GetComponent<BGScroller>();
+        starfieldNear = GameObject.FindGameObjectWithTag("Starfield");
+        particleNearSpeed = starfieldNear.GetComponent<particleSpeed>();
+        particleFar = GameObject.FindGameObjectWithTag("StarfieldDistant");
+        particleFarSpeed = particleFar.GetComponent<particleSpeed>();
+
+        audio = gameObject.GetComponent<AudioSource>();
+        audio.clip = musicGeneric;
+        audio.Play();
+
+        superBoost = false;
     }
 
     private void Update()
@@ -40,9 +75,34 @@ public class GameController : MonoBehaviour
         }
         if (restart)
         {
-            if ( Input.GetKeyDown (KeyCode.Space))
+            if (Input.GetKeyDown (KeyCode.Space))
             {
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+        }
+        if (score >= 30 && superBoost == false && Input.GetKeyDown(KeyCode.E)) {
+            useSuperBoost();
+        }
+
+        timeLeft -= Time.deltaTime;
+        if (isSuperBoost == true)
+        {
+            if (timeLeft > 2)
+            {
+                superBoostText.text = "3";
+            }
+            else if (timeLeft > 1)
+            {
+                superBoostText.text = "2";
+            }
+            else if (timeLeft > 0)
+            {
+                superBoostText.text = "1";
+            }
+            if (timeLeft < 0)
+            {
+                isSuperBoost = false;
+                superBoostText.text = "";
             }
         }
     }
@@ -91,7 +151,43 @@ public class GameController : MonoBehaviour
             gameOverText.text = "You Win!";
             setCredit();
             gameOver = true;
+            enemies = GameObject.FindGameObjectsWithTag("Enemy");
+
+            for (var i = 0; i < enemies.Length; i++)
+            {
+                Destroy(enemies[i]);
+            }
+
+            backgroundScript.scrollMultiplier = 100;
+            particleNearSpeed.multiplier = 100;
+            particleFarSpeed.multiplier = 100;
+            audio.clip = musicWin;
+            audio.Play();
         }
+        if (score >= 30 && superBoost == false)
+        {
+            superBoostText.text = "Press \"E\" to Super Boost!";
+        }
+    }
+
+    void useSuperBoost()
+    {
+        enemy = GameObject.FindGameObjectsWithTag("Enemy");
+        for (i = 0; i < enemy.Length; i++)
+        {
+            enemySpeed = enemy[i].GetComponent<Mover>();
+        }
+        superBoost = true;
+        isSuperBoost = true;
+        timeLeft = 3;
+
+        enemyBolt = GameObject.FindGameObjectsWithTag("EnemyBolt");
+
+        for (var i = 0; i < enemyBolt.Length; i++)
+        {
+            Destroy(enemyBolt[i].transform.parent.gameObject);
+        }
+
     }
 
     void UpdateScore()
@@ -101,6 +197,8 @@ public class GameController : MonoBehaviour
 
     public void GameOver()
     {
+        audio.clip = musicLose;
+        audio.Play();
         gameOverText.text = "Game Over!";
         setCredit();
         gameOver = true;
